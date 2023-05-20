@@ -143,21 +143,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcd152ebccac9ad45a9eab90bca92f90, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Position:
-    m_InternalValue: {x: 0, y: 0, z: 0}
   choosedColor:
     m_InternalValue: 0
   materials:
+  - {fileID: 2100000, guid: 465f485fe92e6334d832eb089f19ec60, type: 2}
+  - {fileID: 2100000, guid: 6470bb1b46b20ff4cbe94c3ecd611b71, type: 2}
   - {fileID: 2100000, guid: 49cd017d75d967646b384a57fa313298, type: 2}
   - {fileID: 2100000, guid: db5ed9fc8af495445ad00f6d21d13a28, type: 2}
-  - {fileID: 2100000, guid: 465f485fe92e6334d832eb089f19ec60, type: 2}
+  - {fileID: 2100000, guid: 416ae6fbcbe70674f920d52ff4a4ae29, type: 2}
   - {fileID: 2100000, guid: 9f124ed6abbd5de4cb5f7e678b06c1d9, type: 2}
   - {fileID: 2100000, guid: 50349af53b4fc0843a429275aeaccc9d, type: 2}
   - {fileID: 2100000, guid: a669b21b0bdc51a4ea2d50565d9c7702, type: 2}
   - {fileID: 2100000, guid: ed37ad23d55422f4f861c40a1c101d08, type: 2}
-  - {fileID: 2100000, guid: 6470bb1b46b20ff4cbe94c3ecd611b71, type: 2}
+  - {fileID: 2100000, guid: c27631a9e87698d459463280cbf43303, type: 2}
   - {fileID: 2100000, guid: ea0eca857639fe3458572e2112476cf8, type: 2}
   - {fileID: 2100000, guid: f14abf1f8ba00c14592cb7e6001b046c, type: 2}
+  movingDistance:
+    m_InternalValue: 0
+  numberOfColorsAdvantage:
+    m_InternalValue: 0
 --- !u!114 &7338897269907974150
 MonoBehaviour:
   m_ObjectHideFlags: 0

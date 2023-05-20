@@ -10,11 +10,15 @@ namespace PlayerNS
 
         public NetworkVariable<int> choosedColor = new NetworkVariable<int>();
         public List<Material> materials = new List<Material>();
+        public NetworkVariable<float> movingDistance;
+        public NetworkVariable<int> numberOfColorsAdvantage;
 
         private PlayerManager playerManager;
 
-        private float movingDistance = 0.1f;
         private Rigidbody rb;
+        private int colorBeforeAdvantageDisadvantage;
+        private float movingDistanceBeforeAdvantageDisadvantage;
+        private ulong playerId;
 
 
         // ======================================================================================================================= client methods
@@ -31,6 +35,8 @@ namespace PlayerNS
         void Start() {
             if (IsOwner) {
                 SubmitInitialPositionRequestServerRpc();
+                //SubmitSetMovingDistanceServerRpc(initialMovingDistance);
+                SubmitSetDefaultValuesServerRpc();
                 ChangeColor();
             }
         }
@@ -38,10 +44,10 @@ namespace PlayerNS
         void Update()
         {
             if (IsOwner) {
-                if (Input.GetKeyDown(KeyCode.LeftArrow))   SubmitPositionServerRpc(- movingDistance, 0);
-                if (Input.GetKeyDown(KeyCode.RightArrow))  SubmitPositionServerRpc(movingDistance, 0);
-                if (Input.GetKeyDown(KeyCode.UpArrow))     SubmitPositionServerRpc(0, movingDistance);
-                if (Input.GetKeyDown(KeyCode.DownArrow))   SubmitPositionServerRpc(0, -movingDistance);
+                if (Input.GetKeyDown(KeyCode.LeftArrow))   SubmitPositionServerRpc(- movingDistance.Value, 0);
+                if (Input.GetKeyDown(KeyCode.RightArrow))  SubmitPositionServerRpc(movingDistance.Value, 0);
+                if (Input.GetKeyDown(KeyCode.UpArrow))     SubmitPositionServerRpc(0, movingDistance.Value);
+                if (Input.GetKeyDown(KeyCode.DownArrow))   SubmitPositionServerRpc(0, -movingDistance.Value);
 
                 if (Input.GetKeyDown(KeyCode.Space)) SubmitPositionJumpingServerRpc();
             }
@@ -62,20 +68,42 @@ namespace PlayerNS
         public void ChangeColor()
         {
             SubmitChangeColorServerRpc(); 
-        }      
-        
+        }
+
+        private void UnlistPlayer(ulong id) {
+            SubmitUnlistPlayerServerRpc(id);
+        }
+
         // ======================================================================================================================= ClientRPC
 
         [ClientRpc]
-        void SetAdvantageDisadvantageClientRpc(float timeToLive, ClientRpcParams clientRpcParams) {
+        public void SetAdvantageDisadvantageClientRpc(ulong playerId, int typeOfAdvantage, float timeToLive, ClientRpcParams clientRpcParams) {
+            
+            // guardar id
+            this.playerId = playerId;
 
-            // TODO
+            // gardar a cor actual
+            colorBeforeAdvantageDisadvantage = choosedColor.Value;
+
             // cambiar cor segundo sexa vantaxe ou desvantaxe
+            SubmitSetColorServerRpc(typeOfAdvantage);
+
             // Modificar velocidade de movemento
+            movingDistanceBeforeAdvantageDisadvantage = movingDistance.Value;
+            movingDistance.Value = typeOfAdvantage == 0 ? movingDistance.Value * 2 : movingDistance.Value / 2;
+            
             // Invocar ServRpc que elimine ao xogador da lista de xogadores modificados pasado o tempo indicado en timeToLive
+            Invoke("UnlistPlayer", timeToLive);
         }
 
         // ======================================================================================================================= ServerRPC
+
+        [ServerRpc]
+        void SubmitUnlistPlayerServerRpc(ulong id) {
+            SubmitSetColorServerRpc(colorBeforeAdvantageDisadvantage);
+            movingDistance.Value = movingDistanceBeforeAdvantageDisadvantage;
+            playerManager.playersWithSpeedModified.Remove(id);
+        }
 
         [ServerRpc]
         void SubmitChangeColorServerRpc(){
@@ -85,7 +113,7 @@ namespace PlayerNS
 
             // Escollemos unha cor libre aleatoriamente
             while (newColor < 0)  {
-                newColor = Random.Range(0, materials.Count);
+                newColor = Random.Range(numberOfColorsAdvantage.Value, materials.Count);
                 if (playerManager.usedColors.Contains(newColor)) {
                     newColor = -1;
                 }
@@ -102,6 +130,17 @@ namespace PlayerNS
             }
             choosedColor.Value = newColor;
 
+        }
+
+        [ServerRpc]
+        void SubmitSetColorServerRpc(int newColor) {
+            choosedColor.Value = newColor;
+        }
+
+        [ServerRpc]
+        void SubmitSetDefaultValuesServerRpc() {
+            movingDistance.Value = 0.4f;
+            numberOfColorsAdvantage.Value = 2;
         }
 
         [ServerRpc]
