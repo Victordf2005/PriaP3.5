@@ -70,8 +70,8 @@ namespace PlayerNS
             SubmitChangeColorServerRpc(); 
         }
 
-        private void UnlistPlayer(ulong id) {
-            SubmitUnlistPlayerServerRpc(id);
+        private void UnlistPlayer() {
+            SubmitUnlistPlayerServerRpc(playerId, movingDistanceBeforeAdvantageDisadvantage);
         }
 
         // ======================================================================================================================= ClientRPC
@@ -79,8 +79,9 @@ namespace PlayerNS
         [ClientRpc]
         public void SetAdvantageDisadvantageClientRpc(ulong playerId, int typeOfAdvantage, float timeToLive, ClientRpcParams clientRpcParams) {
             
-            // guardar id
             this.playerId = playerId;
+
+            float modifiedMovingDistance;
 
             // gardar a cor actual
             colorBeforeAdvantageDisadvantage = choosedColor.Value;
@@ -90,7 +91,11 @@ namespace PlayerNS
 
             // Modificar velocidade de movemento
             movingDistanceBeforeAdvantageDisadvantage = movingDistance.Value;
-            movingDistance.Value = typeOfAdvantage == 0 ? movingDistance.Value * 2 : movingDistance.Value / 2;
+
+            Debug.Log("<< " + movingDistance.Value);
+            modifiedMovingDistance = typeOfAdvantage == 0 ? movingDistance.Value * 2 : movingDistance.Value / 2;
+            Debug.Log("<<<<< " + modifiedMovingDistance);
+            SubmitChangeMovingDistanceServerRpc(modifiedMovingDistance);
             
             // Invocar ServRpc que elimine ao xogador da lista de xogadores modificados pasado o tempo indicado en timeToLive
             Invoke("UnlistPlayer", timeToLive);
@@ -99,10 +104,10 @@ namespace PlayerNS
         // ======================================================================================================================= ServerRPC
 
         [ServerRpc]
-        void SubmitUnlistPlayerServerRpc(ulong id) {
+        void SubmitUnlistPlayerServerRpc(ulong playerId, float oldMovingDistance) {
             SubmitSetColorServerRpc(colorBeforeAdvantageDisadvantage);
-            movingDistance.Value = movingDistanceBeforeAdvantageDisadvantage;
-            playerManager.playersWithSpeedModified.Remove(id);
+            movingDistance.Value = oldMovingDistance;
+            playerManager.playersWithSpeedModified.Remove(playerId);
         }
 
         [ServerRpc]
@@ -133,6 +138,12 @@ namespace PlayerNS
         }
 
         [ServerRpc]
+        void SubmitChangeMovingDistanceServerRpc(float distance) {            
+            movingDistance.Value = distance;
+            Debug.Log(">>>>>>>>>> " + distance);
+        }
+
+        [ServerRpc]
         void SubmitSetColorServerRpc(int newColor) {
             choosedColor.Value = newColor;
         }
@@ -140,6 +151,8 @@ namespace PlayerNS
         [ServerRpc]
         void SubmitSetDefaultValuesServerRpc() {
             movingDistance.Value = 0.4f;
+            
+            Debug.Log("<< " + movingDistance.Value);
             numberOfColorsAdvantage.Value = 2;
         }
 
