@@ -10,18 +10,25 @@ namespace PlayerNS
         public NetworkList<int> usedColors;        
         public NetworkList<ulong> playersWithSpeedModified;
         
-        private static float settedAdvantageRate = 0.5f;
+        private static float settedAdvantageRate = 0.2f;
         private static ulong selectedPlayer;
         private static bool isPlayerSelected;
-        private static float[] timeAdvantageDisadvantage = {10f, 20f};
+        private static float[] timeAdvantageDisadvantage = {8f, 15f};
+
+        private static bool coroutineLaunched;
 
         void Awake() {
             usedColors = new NetworkList<int>();
             playersWithSpeedModified = new NetworkList<ulong>();
+            coroutineLaunched = false;
         }
+        
+        public override void OnNetworkSpawn() {
 
-        void Start() {
-            StartCoroutine(CheckForAdvantages());
+            // Só o servidor pode otorgar premio ou castigo
+            if (NetworkManager.Singleton.IsServer) {
+                StartCoroutine(CheckForAdvantages());
+            }
         }
 
         void OnGUI()
@@ -37,11 +44,7 @@ namespace PlayerNS
 
                 if (IsHost || IsClient) SubmitChangeColor();
 
-                if (IsServer) {
-                    CheckForAdvantages();
-                }
             }
-
             GUILayout.EndArea();
         }
 
@@ -74,8 +77,12 @@ namespace PlayerNS
 
         private IEnumerator CheckForAdvantages() {
            
+            // esperamos 10 segundo a comezar asignando vantaxes/desvantaxes
+            yield return new WaitForSeconds(10f);
+
             int typeOfAdvantage;
             ClientRpcParams clientRpcParams;
+            Player p;
 
             while (true) {
 
@@ -86,9 +93,10 @@ namespace PlayerNS
                     // Buscamos un xogador "libre"
                     isPlayerSelected = false;
                     selectedPlayer = 0;    // obrigamos a entrar no bucle
+                    
                     while ( ! isPlayerSelected ) {
                         selectedPlayer = (ulong) Random.Range(0, NetworkManager.Singleton.ConnectedClientsIds.Count);
-                        if (playersWithSpeedModified.Contains(selectedPlayer)) isPlayerSelected = false;
+                        if (! playersWithSpeedModified.Contains(selectedPlayer)) isPlayerSelected = true;
                     }
 
                     // seleccionamos tipo (vantaxe ou desvantaxe), segundo os elementos do array de tempos de cada unha;
@@ -105,11 +113,17 @@ namespace PlayerNS
                     // engadimos o player á listaxe de players con vantaxe/desvantaxe
                     playersWithSpeedModified.Add(selectedPlayer);
 
+Debug.Log($">>>> Mandamos vantaxe/desvantaxe {typeOfAdvantage} ao xogador {selectedPlayer}");
                     // chamada a clientRpc
-                    //SetAdvantageDisadvantageClientRpc(selectedPlayer, typeOfAdvantage, timeAdvantageDisadvantage[typeOfAdvantage], clientRpcParams);
+                    p = NetworkManager.Singleton.ConnectedClientsList[(int) selectedPlayer].PlayerObject.GetComponent<Player>();
+                    p.SetAdvantageDisadvantageClientRpc(selectedPlayer, typeOfAdvantage, timeAdvantageDisadvantage[typeOfAdvantage], clientRpcParams);
+                    
                 }
 
-                yield return new WaitForSeconds(0.5f);
+                // Agardamos un tempo inversamente proporcional ao número de xogadores conectados para buscar outra vítima
+                // Deste xeito evitamos que as vantaxes/desvantaxes se sucendan a miúdo no mesmo xogador
+                yield return new WaitForSeconds(Mathf.Clamp(15f/NetworkManager.Singleton.ConnectedClientsIds.Count, 3f, 15f));
+
             }
         }
         
